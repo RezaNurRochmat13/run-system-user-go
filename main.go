@@ -5,11 +5,14 @@ import (
 	"todolist-ilcs-api/routes"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 )
 
 func main() {
 	// Start a new Fiber App
 	app := fiber.New()
+
+	app.Use(logger.New())
 
 	// Connect to the database
 	database.ConnectDatabase()
