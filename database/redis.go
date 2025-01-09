@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -24,7 +25,7 @@ func SetupConnectRedis() {
 
 	_, err := RedisDB.Ping(RedisDB.Context()).Result()
 	if err != nil {
-		panic(err)
+		log.Fatalf("Could not connect to Redis: %v", err)
 	}
 
 	fmt.Println("Connection Opened to Redis")
