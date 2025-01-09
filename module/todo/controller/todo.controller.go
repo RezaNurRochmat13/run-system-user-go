@@ -1,6 +1,7 @@
 package todoController
 
 import (
+	"encoding/json"
 	"todolist-ilcs-api/database"
 	todoModel "todolist-ilcs-api/module/todo/model"
 
@@ -10,9 +11,30 @@ import (
 
 func GetAllTodos(c *fiber.Ctx) error {
 	db := database.DB
+    redisDB := database.RedisDB
+    redisTTL := database.RedisCacheTTL
 	var todos []todoModel.Todo
 
+    // Get from cache
+    cacheKey := "todos"
+    cachedTodos, err := redisDB.Get(redisDB.Context(), cacheKey).Result()
+    if err == nil {
+        // Cache hit
+        var todos []todoModel.Todo
+        if err := json.Unmarshal([]byte(cachedTodos), &todos); err == nil {
+            return c.JSON(todos)
+        }
+    }
+
+    // If cache miss, hit the database
 	db.Find(&todos)
+
+    // Store in cache
+	data, err := json.Marshal(todos)
+	if err == nil {
+		redisDB.Set(redisDB.Context(), cacheKey, data, redisTTL)
+	}
+
 
 	if len(todos) == 0 {
 		return c.Status(200).JSON(fiber.Map{"status": "error", "message": "No todos present", "data": nil})
