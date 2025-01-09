@@ -1,6 +1,6 @@
-# Golang Boilerplate Example
+# Todolist App API Example
 
-This is a Golang Boilerplate Example
+This is a Todolist API written in Golang using Go Fiber, Gorm, and PostgreSQL.
 
 ## Installation
 

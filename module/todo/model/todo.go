@@ -11,5 +11,5 @@ type Todo struct {
 	Title string `json:"title"`
 	Description string `json:"description"`
 	Status string `json:"status"`
-	DueDate string `json:"dueDate"`
+	DueDate string `json:"due_date"`
 }
