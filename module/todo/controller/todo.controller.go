@@ -1,156 +1,76 @@
 package todoController
 
 import (
-	"encoding/json"
-	"todolist-ilcs-api/database"
 	todoModel "todolist-ilcs-api/module/todo/model"
+	todoService "todolist-ilcs-api/module/todo/service"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 )
 
 func GetAllTodos(c *fiber.Ctx) error {
-	db := database.DB
-    redisDB := database.RedisDB
-    redisTTL := database.RedisCacheTTL
-	var todos []todoModel.Todo
+	page := c.QueryInt("page", 1)
+	limit := c.QueryInt("limit", 10)
+	status := c.Query("status")
+	search := c.Query("search", "")
 
-    // Get from cache
-    cacheKey := "todos"
-    cachedTodos, err := redisDB.Get(redisDB.Context(), cacheKey).Result()
-    if err == nil {
-        // Cache hit
-        var todos []todoModel.Todo
-        if err := json.Unmarshal([]byte(cachedTodos), &todos); err == nil {
-            return c.JSON(todos)
-        }
-    }
-
-    // If cache miss, hit the database
-	db.Find(&todos)
-
-    // Store in cache
-	data, err := json.Marshal(todos)
-	if err == nil {
-		redisDB.Set(redisDB.Context(), cacheKey, data, redisTTL)
+	todos, _, err := todoService.GetPaginatedTodos(page, limit, status, search)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"status": "error", "message": err.Error(), "data": nil})
 	}
-
 
 	if len(todos) == 0 {
-		return c.Status(200).JSON(fiber.Map{"status": "error", "message": "No todos present", "data": nil})
+		return c.Status(200).JSON(fiber.Map{"status": "error", "message": "No todos found", "data": nil})
 	}
 
-	return c.Status(200).JSON(fiber.Map{"status": "success", "message": "Todos fetched successfully", "data": todos})
+	return c.Status(200).JSON(fiber.Map{"status": "success", "message": "Todos fetched successfully", "data": todos, "page": page, "limit": limit})
 }
 
 func GetSingleTodo(c *fiber.Ctx) error {
-    db := database.DB
-    var todo todoModel.Todo
+	id := c.Params("id")
 
-    // Read the param id
-    id := c.Params("id")
+	todo, err := todoService.GetTodoByID(id)
+	if err != nil {
+		return c.Status(404).JSON(fiber.Map{"status": "error", "message": err.Error(), "data": nil})
+	}
 
-    // Find the todo with the given Id
-    db.Find(&todo, "id = ?", id)
-
-    // If no such todo present return an error
-    if todo.ID == uuid.Nil {
-        return c.Status(404).JSON(fiber.Map{"status": "error", "message": "No todo present", "data": nil})
-    }
-
-    // Return the todo with the Id
-    return c.JSON(fiber.Map{"status": "success", "message": "Todo Found", "data": todo})
+	return c.JSON(fiber.Map{"status": "success", "message": "Todo found", "data": todo})
 }
 
-
 func CreateNewTodo(c *fiber.Ctx) error {
-    db := database.DB
-    todo := new(todoModel.Todo)
+	var todo todoModel.Todo
+	if err := c.BodyParser(&todo); err != nil {
+		return c.Status(400).JSON(fiber.Map{"status": "error", "message": "Invalid input", "data": nil})
+	}
 
-    // Store the body in the todo and return error if encountered
-    err := c.BodyParser(todo)
-    if err != nil {
-        return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Review your input", "data": err})
-    }
+	if err := todoService.CreateTodo(&todo); err != nil {
+		return c.Status(500).JSON(fiber.Map{"status": "error", "message": err.Error(), "data": nil})
+	}
 
-    // Add a uuid to the todo
-    todo.ID = uuid.New()
-    // Create the Todo and return error if encountered
-    err = db.Create(&todo).Error
-    if err != nil {
-        return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Could not create todo", "data": err})
-    }
-
-    // Return the created todo
-    return c.JSON(fiber.Map{"status": "success", "message": "Created Todo", "data": todo})
+	return c.JSON(fiber.Map{"status": "success", "message": "Todo created successfully", "data": todo})
 }
 
 func UpdateTodo(c *fiber.Ctx) error {
-    type updateTodoPayload struct {
-        Title    string `json:"title"`
-        Description string `json:"description"`
-        Status     string `json:"status"`
-        DueDate    string `json:"due_date"`
-    }
+	id := c.Params("id")
+	var data map[string]interface{}
 
-    db := database.DB
-    var todo todoModel.Todo
+	if err := c.BodyParser(&data); err != nil {
+		return c.Status(400).JSON(fiber.Map{"status": "error", "message": "Invalid input", "data": nil})
+	}
 
-    // Read the param id
-    id := c.Params("id")
+	todo, err := todoService.UpdateTodo(id, data)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"status": "error", "message": err.Error(), "data": nil})
+	}
 
-    // Find the todo with the given Id
-    db.Find(&todo, "id = ?", id)
-
-    // If no such todo present return an error
-    if todo.ID == uuid.Nil {
-        return c.Status(404).JSON(fiber.Map{"status": "error", "message": "No todo present", "data": nil})
-    }
-
-    // Store the body containing the updated data and return error if encountered
-    var updateTodoData updateTodoPayload
-    err := c.BodyParser(&updateTodoData)
-    if err != nil {
-        return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Review your input", "data": err})
-    }
-
-    // Edit the todo
-    todo.Title = updateTodoData.Title
-    todo.Description = updateTodoData.Description
-    todo.Status = updateTodoData.Status
-    todo.DueDate = updateTodoData.DueDate
-
-    // Save the Changes
-    db.Save(&todo)
-
-    // Return the updated todo
-    return c.JSON(fiber.Map{"status": "success", "message": "Todo Found", "data": todo})
+	return c.JSON(fiber.Map{"status": "success", "message": "Todo updated successfully", "data": todo})
 }
 
 func DeleteTodo(c *fiber.Ctx) error {
-    db := database.DB
-    var todo todoModel.Todo
+	id := c.Params("id")
 
-    // Read the param id
-    id := c.Params("id")
+	if err := todoService.DeleteTodo(id); err != nil {
+		return c.Status(404).JSON(fiber.Map{"status": "error", "message": err.Error(), "data": nil})
+	}
 
-    // Find the todo with the given Id
-    db.Find(&todo, "id = ?", id)
-
-    // If no such todo present return an error
-    if todo.ID == uuid.Nil {
-        return c.Status(404).JSON(fiber.Map{"status": "error", "message": "No todo present", "data": nil})
-    }
-
-    // Delete the todo and return error if encountered
-    err := db.Delete(&todo, "id = ?", id).Error
-
-    if err != nil {
-        return c.Status(404).JSON(fiber.Map{"status": "error", "message": "Failed to delete todo", "data": nil})
-    }
-
-    // Return success message
-    return c.JSON(fiber.Map{"status": "success", "message": "Deleted Todo"})
+	return c.JSON(fiber.Map{"status": "success", "message": "Todo deleted successfully"})
 }
-
-
