@@ -1,20 +1,18 @@
 package userRoutes
 
 import (
-	"runs-system-user-go/database"
 	"runs-system-user-go/middleware"
 	userController "runs-system-user-go/module/user/controller"
 
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
-var db = database.DB
-
-func SetupUserRoutes(router fiber.Router) {
-	userRoutes := router.Group("/users", middleware.AuthMiddleware(db))
+func SetupUserRoutes(db *gorm.DB, router fiber.Router) {
+	userRoutes := router.Group("/users")
 
 	// Read all Users
-	userRoutes.Get("/", userController.GetAllUsers)
+	userRoutes.Get("/", middleware.AuthMiddleware(db), userController.GetAllUsers)
 
 	// Create new User
 	userRoutes.Post("/", userController.CreateNewUser)
