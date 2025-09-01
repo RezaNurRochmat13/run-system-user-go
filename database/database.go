@@ -3,9 +3,9 @@ package database
 import (
 	"fmt"
 	"log"
+	"runs-system-user-go/config"
+	userModel "runs-system-user-go/module/user/model"
 	"strconv"
-	"todolist-ilcs-api/config"
-	todoModel "todolist-ilcs-api/module/todo/model"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -33,5 +33,5 @@ func ConnectDatabase() {
 	fmt.Println("Connection Opened to Database")
 
 	// Migrate the schema
-	DB.AutoMigrate(&todoModel.Todo{})
+	DB.AutoMigrate(&userModel.User{})
 }

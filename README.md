@@ -1,6 +1,6 @@
-# Todolist App API Example
+# User Auth API
 
-This is a Todolist API written in Golang using Go Fiber, Gorm, and PostgreSQL.
+This is a User Auth API written in Golang using Go Fiber, Gorm, and PostgreSQL.
 
 ## Installation
 

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"todolist-ilcs-api/database"
-	"todolist-ilcs-api/routes"
+	"runs-system-user-go/database"
+	"runs-system-user-go/routes"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"

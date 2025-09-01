@@ -1,7 +1,7 @@
 package routes
 
 import (
-	todoRoutes "todolist-ilcs-api/module/todo/routes"
+	userRoutes "runs-system-user-go/module/user/routes"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -9,5 +9,5 @@ import (
 func SetupRoutes(app *fiber.App) {
 	api := app.Group("/api/v1")
 
-	todoRoutes.SetupTodoRoutes(api)
+	userRoutes.SetupUserRoutes(api)
 }
