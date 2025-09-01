@@ -15,6 +15,6 @@ func SetupTestApp() *fiber.App {
 	database.ConnectDatabase()
 	db.Exec("TRUNCATE users RESTART IDENTITY") // Clear test database
 	app := fiber.New()
-	userRoutes.SetupUserRoutes(app)
+	userRoutes.SetupUserRoutes(db, app)
 	return app
 }
